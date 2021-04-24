@@ -2,6 +2,7 @@ import os
 from pydantic import BaseModel
 from fastapi import FastAPI, Query
 from sqlalchemy import create_engine
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
@@ -58,6 +59,15 @@ app = FastAPI(
     docs_url="/",
     redoc_url=None
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 
 @app.post('/blood/entry')
