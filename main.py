@@ -240,7 +240,9 @@ async def blood_entry(blood: Blood):
                                                                                               blood.longitude)
 
         status = conn.execute(query)
-        return "Hello"
+        return {
+            "message": "Processed"
+        }
 
 
 @app.post('/oxygen/entry')
@@ -257,7 +259,9 @@ async def oxygen_entry(oxygen: Oxygen):
                                                                                     oxygen.latitude, oxygen.longitude)
 
         status = conn.execute(query)
-        return "Hello"
+        return {
+            "message": "Processed"
+        }
 
 
 @app.get('/blood/{mobileNumber}')
