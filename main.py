@@ -97,17 +97,17 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 bloodList = [
-    (0,1,2,3),
-    (1,3),
-    (2,3),
+    (0, 1, 2, 3),
+    (1, 3),
+    (2, 3),
     (3),
-    (2,3,4,5),
-    (5,3),
-    (0,1,2,3,4,5,6,7),
-    (1,3,5,7)
+    (2, 3, 4, 5),
+    (5, 3),
+    (0, 1, 2, 3, 4, 5, 6, 7),
+    (1, 3, 5, 7)
 ]
 
-bloodMap = ['A+','A-','O+','O-','B+','B-','AB+','AB-']
+bloodMap = ['A+', 'A-', 'O+', 'O-', 'B+', 'B-', 'AB+', 'AB-']
 
 app = FastAPI(
     title="COVAID Backend",
@@ -240,17 +240,18 @@ async def blood_entry(blood: Blood):
         recoveryDate = blood.recoveryDate.split('T')[0] + " 00:00:00"
         query = '''INSERT INTO bloodInfo(mobileNumber, bloodReceiver, bloodType, hospitalName, pickUpDrop, documentURI, 
         recoveryDate, distanceWillingToTravel, detailsAvailable, latitude, longitude, createdAt, updatedAt) 
-        values ('{0}',{1},{2},'{3}',{4},'{5}','{6}',{7},{8},{9},{10}, now(), now())'''.format(blood.mobileNumber,
-                                                                                              blood.bloodReceiver,
-                                                                                              blood.bloodType,
-                                                                                              blood.hospitalName,
-                                                                                              blood.pickUpDrop,
-                                                                                              blood.documentURI,
-                                                                                              recoveryDate,
-                                                                                              blood.distanceWillingToTravel,
-                                                                                              blood.detailsAvailable,
-                                                                                              blood.latitude,
-                                                                                              blood.longitude)
+        VALUES 
+        ('{0}',{1},{2},'{3}',{4},'{5}','{6}',{7},{8},{9},{10}, now(), now())'''.format(blood.mobileNumber,
+                                                                                       blood.bloodReceiver,
+                                                                                       blood.bloodType,
+                                                                                       blood.hospitalName,
+                                                                                       blood.pickUpDrop,
+                                                                                       blood.documentURI,
+                                                                                       recoveryDate,
+                                                                                       blood.distanceWillingToTravel,
+                                                                                       blood.detailsAvailable,
+                                                                                       blood.latitude,
+                                                                                       blood.longitude)
 
         status = conn.execute(query)
         return {
@@ -314,28 +315,28 @@ async def blood_receive_request(bloodreceive: BloodReceive):
         for i in bt:
             bg = i[0]
 
-
         query = ''' SELECT mobileNumber, ( 6371 * acos( cos( radians({0}) ) * cos( radians( latitude ) )
-                * cos( radians( longitude ) - radians({1}) ) + sin( radians({2}) ) * sin(radians(latitude)) ) ) AS distance
+                * cos( radians( longitude ) - radians({1}) ) + sin( radians({2}) ) * sin(radians(latitude)) ) ) 
+                AS distance
                 FROM bloodInfo 
                 WHERE bloodReceiver = 0 AND isActive = 1 AND bloodType in {3}
                 HAVING distance < 500
                 ORDER BY distance
-                LIMIT 0 , 3;'''.format(bloodreceive.latitude, bloodreceive.longitude, bloodreceive.latitude, bloodList[bg] )
-
+                LIMIT 0 , 3;'''.format(bloodreceive.latitude, bloodreceive.longitude, bloodreceive.latitude,
+                                       bloodList[bg])
 
         values = conn.execute(query)
         k = 0
         for value in values:
             query2 = ''' INSERT INTO bloodMapping(receiver, donor, distance) VALUES ('{}','{}',{})
             '''.format(bloodreceive.mobileNumber, value[0], value[1])
-            res2 = conn.execute(query2)
+            conn.execute(query2)
             k += 1
 
         query3 = '''INSERT INTO customMessage(mobileNumber, message, contentType) 
         VALUES('{0}','{1}',0)
         '''.format(bloodreceive.mobileNumber, bloodreceive.bloodMessage)
-        res3 = conn.execute(query3)
+        conn.execute(query3)
 
         return {
             "userNotified": k
@@ -353,7 +354,8 @@ async def blood_donate_data(mobileNumber: str):
         for value in values:
             return [value]
 
-        query = '''SELECT bI.bloodType, bI.hospitalName, bI.pickUpDrop, bI.documentURI, cM.message, bM.distance
+        query = '''SELECT bI.mobileNumber, bI.bloodType, bI.hospitalName, bI.pickUpDrop, 
+                    bI.documentURI, cM.message, bM.distance
                     FROM bloodInfo as bI
                     RIGHT JOIN bloodMapping as bM on bM.receiver = bI.mobileNumber
                     LEFT JOIN customMessage cM on bI.mobileNumber = cM.mobileNumber
@@ -398,7 +400,8 @@ def blood_accept(donor: str, receiver: str):
 async def oxygen_receive_request(oxygenreceive: OxygenReceive):
     with engine.connect() as conn:
         query = ''' SELECT mobileNumber, ( 6371 * acos( cos( radians({0}) ) * cos( radians( latitude ) )
-                * cos( radians( longitude ) - radians({1}) ) + sin( radians({2}) ) * sin(radians(latitude)) ) ) AS distance
+                * cos( radians( longitude ) - radians({1}) ) + sin( radians({2}) ) * sin(radians(latitude)) ) ) 
+                AS distance
                 FROM oxygenInfo 
                 WHERE oxygenReceiver = 0 AND isActive = 1
                 HAVING distance < 500
@@ -410,13 +413,13 @@ async def oxygen_receive_request(oxygenreceive: OxygenReceive):
         for value in values:
             query2 = ''' INSERT INTO oxygenMapping(receiver, donor, distance) VALUES ('{}','{}',{})
             '''.format(oxygenreceive.mobileNumber, value[0], value[1])
-            res2 = conn.execute(query2)
+            conn.execute(query2)
             k += 1
 
         query3 = '''INSERT INTO customMessage(mobileNumber, message, contentType) 
         VALUES('{0}','{1}',1)
         '''.format(oxygenreceive.mobileNumber, oxygenreceive.oxygenMessage)
-        res3 = conn.execute(query3)
+        conn.execute(query3)
 
         return {
             "userNotified": k
