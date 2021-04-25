@@ -96,6 +96,19 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+bloodList = [
+    (0,1,2,3),
+    (1,3),
+    (2,3),
+    (3),
+    (2,3,4,5),
+    (5,3),
+    (0,1,2,3,4,5,6,7),
+    (1,3,5,7)
+]
+
+bloodMap = ['A+','A-','O+','O-','B+','B-','AB+','AB-']
+
 app = FastAPI(
     title="COVAID Backend",
     description="Backend for COVAID",
@@ -181,7 +194,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
 
 async def get_current_active_user(current_user: User = Depends(get_current_user)):
-    if current_user.disabled:
+    if current_user['disabled']:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
@@ -295,13 +308,21 @@ async def blood_get(mobileNumber: str):
 @app.post('/blood/receive/')
 async def blood_receive_request(bloodreceive: BloodReceive):
     with engine.connect() as conn:
+        query0 = '''SELECT bloodType FROM bloodInfo WHERE mobileNumber = '{}' '''.format(bloodreceive.mobileNumber)
+        bt = conn.execute(query0)
+        bg = None
+        for i in bt:
+            bg = i[0]
+
+
         query = ''' SELECT mobileNumber, ( 6371 * acos( cos( radians({0}) ) * cos( radians( latitude ) )
                 * cos( radians( longitude ) - radians({1}) ) + sin( radians({2}) ) * sin(radians(latitude)) ) ) AS distance
                 FROM bloodInfo 
-                WHERE bloodReceiver = 0 AND isActive = 1
+                WHERE bloodReceiver = 0 AND isActive = 1 AND bloodType in {3}
                 HAVING distance < 500
                 ORDER BY distance
-                LIMIT 0 , 3;'''.format(bloodreceive.latitude, bloodreceive.longitude, bloodreceive.latitude)
+                LIMIT 0 , 3;'''.format(bloodreceive.latitude, bloodreceive.longitude, bloodreceive.latitude, bloodList[bg] )
+
 
         values = conn.execute(query)
         k = 0
@@ -340,11 +361,13 @@ async def blood_donate_data(mobileNumber: str):
         '''.format(mobileNumber)
 
         values = conn.execute(query)
-        respones = []
+        responses = []
         for value in values:
-            respones.append(value)
+            value = dict(value)
+            value['bloodType'] = bloodMap[value['bloodType']]
+            responses.append(value)
 
-        return respones
+        return responses
 
 
 # Needs to be tested briefly
