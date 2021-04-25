@@ -385,6 +385,21 @@ async def blood_donate_data(mobileNumber: str):
 
         return responses
 
+@app.get('/blood/receive/{mobileNumber}')
+async def blood_donate_data(mobileNumber: str):
+    with engine.connect() as conn:
+        query0 = ''' SELECT donor, receiver, distance, isAccepted
+        FROM bloodMapping as bM
+        WHERE bM.receiver = '{}'
+        '''.format(mobileNumber)
+
+        values = conn.execute(query0)
+        responses = []
+        for value in values:
+            responses.append(value)
+
+        return responses
+
 
 # Needs to be tested briefly
 @app.post('/blood/accept/{donor}/{receiver}')
