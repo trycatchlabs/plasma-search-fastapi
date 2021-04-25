@@ -346,12 +346,15 @@ async def blood_receive_request(bloodreceive: BloodReceive):
 @app.get('/blood/donate/{mobileNumber}')
 async def blood_donate_data(mobileNumber: str):
     with engine.connect() as conn:
-        query0 = ''' SELECT bI.bloodType, bI.hospitalName, bI.pickUpDrop, bI.documentURI, bM.donor, bM.receiver 
+        query0 = ''' SELECT bI.bloodType, bI.hospitalName, bI.pickUpDrop, bI.documentURI, bM.donor, bM.receiver,
+        bM.distance 
         FROM bloodInfo as bI, bloodMapping as bM 
         WHERE bM.donor = '{}' AND bM.isAccepted = 1 and bI.mobileNumber = bM.receiver
         '''.format(mobileNumber)
         values = conn.execute(query0)
         for value in values:
+            value = dict(value)
+            value['bloodType'] = bloodMap[value['bloodType']]
             return [value]
 
         query = '''SELECT bI.mobileNumber, bI.bloodType, bI.hospitalName, bI.pickUpDrop, 
