@@ -253,10 +253,16 @@ async def blood_entry(blood: Blood):
                                                                                        blood.latitude,
                                                                                        blood.longitude)
 
-        status = conn.execute(query)
-        return {
-            "message": "Processed"
-        }
+        try:
+            status = conn.execute(query)
+            return {
+                "message": "Processed"
+            }
+        except Exception as E:
+            return {
+                "message": "User Role Already Exist"
+            }
+
 
 
 @app.post('/oxygen/entry')
@@ -272,10 +278,15 @@ async def oxygen_entry(oxygen: Oxygen):
                                                                                     oxygen.oxygenDetailsAvailable,
                                                                                     oxygen.latitude, oxygen.longitude)
 
-        status = conn.execute(query)
-        return {
-            "message": "Processed"
-        }
+        try:
+            status = conn.execute(query)
+            return {
+                "message": "Processed"
+            }
+        except Exception as E:
+            return {
+                "message": "User Role Already Exist"
+            }
 
 
 @app.get('/blood/{mobileNumber}')
@@ -347,7 +358,7 @@ async def blood_receive_request(bloodreceive: BloodReceive):
 async def blood_donate_data(mobileNumber: str):
     with engine.connect() as conn:
         query0 = ''' SELECT bI.bloodType, bI.hospitalName, bI.pickUpDrop, bI.documentURI, bM.donor, bM.receiver,
-        bM.distance 
+        bM.distance, bM.isAccepted 
         FROM bloodInfo as bI, bloodMapping as bM 
         WHERE bM.donor = '{}' AND bM.isAccepted = 1 and bI.mobileNumber = bM.receiver
         '''.format(mobileNumber)
@@ -358,7 +369,7 @@ async def blood_donate_data(mobileNumber: str):
             return [value]
 
         query = '''SELECT bI.mobileNumber, bI.bloodType, bI.hospitalName, bI.pickUpDrop, 
-                    bI.documentURI, cM.message, bM.distance
+                    bI.documentURI, cM.message, bM.distance, bM.isAccepted
                     FROM bloodInfo as bI
                     RIGHT JOIN bloodMapping as bM on bM.receiver = bI.mobileNumber
                     LEFT JOIN customMessage cM on bI.mobileNumber = cM.mobileNumber
