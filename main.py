@@ -227,7 +227,9 @@ def register_new_user(new_user: NewUser):
                 'message': "OK"
             }
         except:
-            raise UnicornException(name="User Already Exist")
+            return {
+                'status': "400"
+            }
 
 
 @app.post("/user/login", response_model=Token)
