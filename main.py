@@ -92,9 +92,11 @@ class NewUser(BaseModel):
     mobileNumber: str = Query(...)
     password: str = Query(...)
 
+
 class UnicornException(Exception):
     def __init__(self, name: str):
         self.name = name
+
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -202,6 +204,7 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
+
 @app.exception_handler(UnicornException)
 async def unicorn_exception_handler(request: Request, exc: UnicornException):
     return JSONResponse(
@@ -210,6 +213,7 @@ async def unicorn_exception_handler(request: Request, exc: UnicornException):
             "message": f"Oops! {exc.name}. There goes a rainbow..."
         },
     )
+
 
 @app.post('/user/register')
 def register_new_user(new_user: NewUser):
@@ -221,7 +225,7 @@ def register_new_user(new_user: NewUser):
         '''.format(new_user.email, new_user.location, new_user.gender, new_user.age, new_user.mobileNumber,
                    hashed_password, new_user.name)
         try:
-            result = conn.execute(query)
+            conn.execute(query)
 
             return {
                 'message': "OK"
@@ -249,6 +253,16 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         return {"access_token": access_token, "token_type": "bearer"}
 
 
+@app.get('/profile/{mobileNumber}')
+def get_profile(mobileNumber: str):
+    with engine.connect() as conn:
+        query = ''' SELECT name, email, location, gender, age, mobileNumber, createdAt as registerdOn
+        FROM users WHERE mobileNumber = '{}'
+        '''.format(mobileNumber)
+
+        result = conn.execute(query)
+        for value in result:
+            return value
 
 
 @app.post('/blood/entry')
@@ -271,7 +285,7 @@ async def blood_entry(blood: Blood):
                                                                                        blood.longitude)
 
         try:
-            status = conn.execute(query)
+            conn.execute(query)
             return {
                 "message": "Processed"
             }
@@ -295,7 +309,7 @@ async def oxygen_entry(oxygen: Oxygen):
                                                                                     oxygen.latitude, oxygen.longitude)
 
         try:
-            status = conn.execute(query)
+            conn.execute(query)
             return {
                 "message": "Processed"
             }
