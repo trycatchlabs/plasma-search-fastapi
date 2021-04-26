@@ -204,10 +204,10 @@ def register_new_user(new_user: NewUser):
     hashed_password = get_password_hash(new_user.password)
 
     with engine.connect() as conn:
-        query = '''INSERT INTO users(email, location, gender, age, mobileNumber, password) 
-        VALUES ('{0}' , '{1}', {2}, {3}, '{4}', '{5}' )
+        query = '''INSERT INTO users(email, location, gender, age, mobileNumber, password, name) 
+        VALUES ('{0}','{1}', {2}, {3}, '{4}', '{5}', '{6}' )
         '''.format(new_user.email, new_user.location, new_user.gender, new_user.age, new_user.mobileNumber,
-                   hashed_password)
+                   hashed_password, new_user.name)
 
         result = conn.execute(query)
 
@@ -258,11 +258,10 @@ async def blood_entry(blood: Blood):
             return {
                 "message": "Processed"
             }
-        except Exception as E:
+        except:
             return {
                 "message": "User Role Already Exist"
             }
-
 
 
 @app.post('/oxygen/entry')
@@ -283,7 +282,7 @@ async def oxygen_entry(oxygen: Oxygen):
             return {
                 "message": "Processed"
             }
-        except Exception as E:
+        except:
             return {
                 "message": "User Role Already Exist"
             }
@@ -304,7 +303,7 @@ async def blood_get(mobileNumber: str):
 
 
 @app.get('/oxygen/{mobileNumber}')
-async def blood_get(mobileNumber: str):
+async def oxygen_get(mobileNumber: str):
     with engine.connect() as conn:
         query = '''SELECT * FROM oxygenInfo WHERE mobileNumber = '{}' '''.format(mobileNumber)
         values = conn.execute(query)
@@ -355,7 +354,7 @@ async def blood_receive_request(bloodreceive: BloodReceive):
 
 
 @app.get('/blood/donate/{mobileNumber}')
-async def blood_donate_data(mobileNumber: str):
+async def blood_receive_data(mobileNumber: str):
     with engine.connect() as conn:
         query0 = ''' SELECT bI.bloodType, bI.hospitalName, bI.pickUpDrop, bI.documentURI, bM.donor, bM.receiver,
         bM.distance, bM.isAccepted 
@@ -384,6 +383,7 @@ async def blood_donate_data(mobileNumber: str):
             responses.append(value)
 
         return responses
+
 
 @app.get('/blood/receive/{mobileNumber}')
 async def blood_donate_data(mobileNumber: str):
