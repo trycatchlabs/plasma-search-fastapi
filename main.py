@@ -1,8 +1,9 @@
 import os
 from pydantic import BaseModel
-from fastapi import FastAPI, Query, Depends, HTTPException, status
+from fastapi import FastAPI, Query, Depends, HTTPException, status, Request
 from sqlalchemy import create_engine
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -91,6 +92,9 @@ class NewUser(BaseModel):
     mobileNumber: str = Query(...)
     password: str = Query(...)
 
+class UnicornException(Exception):
+    def __init__(self, name: str):
+        self.name = name
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -198,6 +202,14 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
+@app.exception_handler(UnicornException)
+async def unicorn_exception_handler(request: Request, exc: UnicornException):
+    return JSONResponse(
+        status_code=418,
+        content={
+            "message": f"Oops! {exc.name}. There goes a rainbow..."
+        },
+    )
 
 @app.post('/user/register')
 def register_new_user(new_user: NewUser):
@@ -208,10 +220,14 @@ def register_new_user(new_user: NewUser):
         VALUES ('{0}','{1}', {2}, {3}, '{4}', '{5}', '{6}' )
         '''.format(new_user.email, new_user.location, new_user.gender, new_user.age, new_user.mobileNumber,
                    hashed_password, new_user.name)
+        try:
+            result = conn.execute(query)
 
-        result = conn.execute(query)
-
-        return "OK"
+            return {
+                'message': "OK"
+            }
+        except:
+            raise UnicornException(name="User Already Exist")
 
 
 @app.post("/user/login", response_model=Token)
@@ -231,7 +247,6 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         return {"access_token": access_token, "token_type": "bearer"}
 
 
-"================================================="
 
 
 @app.post('/blood/entry')
