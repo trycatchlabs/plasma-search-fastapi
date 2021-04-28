@@ -1,6 +1,7 @@
 import os
 from pydantic import BaseModel
 from fastapi import FastAPI, Query, Depends, HTTPException, status, Request
+import sqlalchemy
 from sqlalchemy import create_engine
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -519,11 +520,25 @@ async def oxygen_receive_request(oxygenreceive: OxygenReceive):
 def forgot_password(reset_password: resetPassword):
     hashed_password = get_password_hash(reset_password.password)
     with engine.connect() as conn:
-        query = '''UPDATE users SET password = '{}', updatedAt = now() WHERE mobileNumber = '{}'
-        '''.format(hashed_password, reset_password.mobileNumber)
+        query0 = '''SELECT * FROM users WHERE mobileNumber = '{}' '''.format(reset_password.mobileNumber)
+        result = conn.execute(query0)
+        k = 0
+        for r in result:
+            k+=1
 
-        conn.execute(query)
+        if k == 0:
+            return {
+                'message': "User Doesn't Exist"
+            }
+        else:
+            query = '''UPDATE users SET password = '{}', updatedAt = now() WHERE mobileNumber = '{}'
+                                '''.format(hashed_password, reset_password.mobileNumber)
 
-    return {
-        'message': 'Password Changed Successfully'
-    }
+            result = conn.execute(query)
+            return {
+                'message': 'Password Changed Successfully'
+            }
+
+
+
+
