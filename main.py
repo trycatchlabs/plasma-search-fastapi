@@ -42,7 +42,7 @@ class Blood(BaseModel):
 
 class Oxygen(BaseModel):
     mobileNumber: str = Query(...)
-    oxygenReciever: bool = Query(...)
+    oxygenReceiver: bool = Query(...)
     hospitalName: str = Query(...)
     fullGear: bool = Query(...)
     canDeliver: bool = Query(...)
@@ -374,10 +374,13 @@ async def blood_receive_request(bloodreceive: BloodReceive):
             conn.execute(query2)
             k += 1
 
-        query3 = '''INSERT INTO customMessage(mobileNumber, message, contentType) 
-        VALUES('{0}','{1}',0)
-        '''.format(bloodreceive.mobileNumber, bloodreceive.bloodMessage)
-        conn.execute(query3)
+        if k == 0:
+            pass
+        else:
+            query3 = '''INSERT INTO customMessage(mobileNumber, message, contentType) 
+                    VALUES('{0}','{1}',0)
+                    '''.format(bloodreceive.mobileNumber, bloodreceive.bloodMessage)
+            conn.execute(query3)
 
         return {
             "userNotified": k
@@ -441,7 +444,8 @@ def blood_accept(donor: str, receiver: str):
 
         conn.execute(query0)
 
-        query1 = '''UPDATE bloodInfo SET isActive = 0 where mobileNumber = '{0}' or mobileNumber = '{1}'
+        query1 = '''UPDATE bloodInfo SET isActive = 0, updatedAt = now() 
+        WHERE mobileNumber = '{0}' or mobileNumber = '{1}'
         '''.format(donor, receiver)
 
         conn.execute(query1)
@@ -484,3 +488,17 @@ async def oxygen_receive_request(oxygenreceive: OxygenReceive):
         return {
             "userNotified": k
         }
+
+
+@app.post('/user/forgotPassword')
+def forgot_password(mobileNumber: str, password: str):
+    hashed_password = get_password_hash(password)
+    with engine.connect() as conn:
+        query = '''UPDATE users SET password = '{}', updatedAt = now() WHERE mobileNumber = '{}'
+        '''.format(hashed_password, mobileNumber)
+
+        conn.execute(query)
+
+    return {
+        'message': 'Password Changed Successfully'
+    }
