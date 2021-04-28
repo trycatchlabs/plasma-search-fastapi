@@ -25,6 +25,12 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ['TIMEOUT'])
 
 engine = create_engine('mysql+pymysql://{}:{}@{}/{}'.format(user, password, host, database))
 
+tags_metadata = [
+    {"name": "user", "description": "Handle User Operation"},
+    {"name": "blood", "description": "Handle Queries Related to Blood"},
+    {"name": "oxygen", "description": "Handle Queries Related to Oxygen"}
+]
+
 
 class Blood(BaseModel):
     mobileNumber: str
@@ -118,6 +124,7 @@ bloodMap = ['A+', 'A-', 'O+', 'O-', 'B+', 'B-', 'AB+', 'AB-']
 app = FastAPI(
     title="COVAID Backend",
     description="Backend for COVAID",
+    openapi_tags=tags_metadata,
     version="0.1.0",
     openapi_url="/api/v0.1.0/openapi.json",
     docs_url="/",
@@ -215,7 +222,8 @@ async def unicorn_exception_handler(request: Request, exc: UnicornException):
     )
 
 
-@app.post('/user/register')
+@app.post('/user/register',
+          tags=["user"])
 def register_new_user(new_user: NewUser):
     hashed_password = get_password_hash(new_user.password)
 
@@ -236,7 +244,8 @@ def register_new_user(new_user: NewUser):
             }
 
 
-@app.post("/user/login", response_model=Token)
+@app.post("/user/login", response_model=Token,
+          tags=["user"])
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     with engine.connect() as conn:
         user = authenticate_user(conn, form_data.username, form_data.password)
@@ -253,7 +262,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         return {"access_token": access_token, "token_type": "bearer"}
 
 
-@app.get('/profile/{mobileNumber}')
+@app.get('/profile/{mobileNumber}',
+         tags=["user"])
 def get_profile(mobileNumber: str):
     with engine.connect() as conn:
         query = ''' SELECT name, email, location, gender, age, mobileNumber, createdAt as registerdOn
@@ -265,7 +275,8 @@ def get_profile(mobileNumber: str):
             return value
 
 
-@app.post('/blood/entry')
+@app.post('/blood/entry',
+          tags=["blood"])
 async def blood_entry(blood: Blood):
     with engine.connect() as conn:
         recoveryDate = blood.recoveryDate.split('T')[0] + " 00:00:00"
@@ -295,7 +306,8 @@ async def blood_entry(blood: Blood):
             }
 
 
-@app.post('/oxygen/entry')
+@app.post('/oxygen/entry',
+          tags=["oxygen"])
 async def oxygen_entry(oxygen: Oxygen):
     with engine.connect() as conn:
         query = '''INSERT INTO oxygenInfo(mobileNumber, oxygenReceiver, hospitalName, fullGear, canDeliver, 
@@ -319,7 +331,8 @@ async def oxygen_entry(oxygen: Oxygen):
             }
 
 
-@app.get('/blood/{mobileNumber}')
+@app.get('/blood/{mobileNumber}',
+         tags=["blood"])
 async def blood_get(mobileNumber: str):
     with engine.connect() as conn:
         query = '''SELECT * FROM bloodInfo WHERE mobileNumber = '{}' '''.format(mobileNumber)
@@ -333,7 +346,8 @@ async def blood_get(mobileNumber: str):
         }
 
 
-@app.get('/oxygen/{mobileNumber}')
+@app.get('/oxygen/{mobileNumber}',
+         tags=["oxygen"])
 async def oxygen_get(mobileNumber: str):
     with engine.connect() as conn:
         query = '''SELECT * FROM oxygenInfo WHERE mobileNumber = '{}' '''.format(mobileNumber)
@@ -347,7 +361,8 @@ async def oxygen_get(mobileNumber: str):
         }
 
 
-@app.post('/blood/receive/')
+@app.post('/blood/receive/',
+          tags=["blood"])
 async def blood_receive_request(bloodreceive: BloodReceive):
     with engine.connect() as conn:
         query0 = '''SELECT bloodType FROM bloodInfo WHERE mobileNumber = '{}' '''.format(bloodreceive.mobileNumber)
@@ -387,7 +402,8 @@ async def blood_receive_request(bloodreceive: BloodReceive):
         }
 
 
-@app.get('/blood/donate/{mobileNumber}')
+@app.get('/blood/donate/{mobileNumber}',
+         tags=["blood"])
 async def blood_receive_data(mobileNumber: str):
     with engine.connect() as conn:
         query0 = ''' SELECT bI.bloodType, bI.hospitalName, bI.pickUpDrop, bI.documentURI, bM.donor, bM.receiver,
@@ -419,7 +435,8 @@ async def blood_receive_data(mobileNumber: str):
         return responses
 
 
-@app.get('/blood/receive/{mobileNumber}')
+@app.get('/blood/receive/{mobileNumber}',
+         tags=["blood"])
 async def blood_donate_data(mobileNumber: str):
     with engine.connect() as conn:
         query0 = ''' SELECT donor, receiver, distance, isAccepted
@@ -436,7 +453,8 @@ async def blood_donate_data(mobileNumber: str):
 
 
 # Needs to be tested briefly
-@app.post('/blood/accept/{donor}/{receiver}')
+@app.post('/blood/accept/{donor}/{receiver}',
+          tags=["blood"])
 def blood_accept(donor: str, receiver: str):
     with engine.connect() as conn:
         query0 = ''' UPDATE bloodMapping SET isAccepted = 1 where donor = '{0}' and receiver = '{1}'
@@ -460,7 +478,8 @@ def blood_accept(donor: str, receiver: str):
         }
 
 
-@app.post('/oxygen/receive/')
+@app.post('/oxygen/receive/',
+          tags=["oxygen"])
 async def oxygen_receive_request(oxygenreceive: OxygenReceive):
     with engine.connect() as conn:
         query = ''' SELECT mobileNumber, ( 6371 * acos( cos( radians({0}) ) * cos( radians( latitude ) )
@@ -490,7 +509,8 @@ async def oxygen_receive_request(oxygenreceive: OxygenReceive):
         }
 
 
-@app.post('/user/forgotPassword')
+@app.post('/user/forgotPassword',
+          tags=["user"])
 def forgot_password(mobileNumber: str, password: str):
     hashed_password = get_password_hash(password)
     with engine.connect() as conn:
