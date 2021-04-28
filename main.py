@@ -104,6 +104,11 @@ class UnicornException(Exception):
         self.name = name
 
 
+class resetPassword(BaseModel):
+    mobileNumber: str = Query(...)
+    password: str = Query(...)
+
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -511,11 +516,11 @@ async def oxygen_receive_request(oxygenreceive: OxygenReceive):
 
 @app.post('/user/forgotPassword',
           tags=["user"])
-def forgot_password(mobileNumber: str, password: str):
-    hashed_password = get_password_hash(password)
+def forgot_password(reset_password: resetPassword):
+    hashed_password = get_password_hash(reset_password.password)
     with engine.connect() as conn:
         query = '''UPDATE users SET password = '{}', updatedAt = now() WHERE mobileNumber = '{}'
-        '''.format(hashed_password, mobileNumber)
+        '''.format(hashed_password, reset_password.mobileNumber)
 
         conn.execute(query)
 
