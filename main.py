@@ -24,7 +24,10 @@ SECRET_KEY = os.environ['HASH']
 ALGORITHM = os.environ['ALGORITHM']
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ['TIMEOUT'])
 
-engine = create_engine('mysql+pymysql://{}:{}@{}/{}'.format(user, password, host, database))
+
+ssl_args = {'ssl_ca': 'BaltimoreCyberTrustRoot.crt.pem'}
+engine = create_engine('mysql+pymysql://{}:{}@{}/{}?ssl=true'.format(user, password, host, database),
+                       connect_args=ssl_args)
 
 tags_metadata = [
     {"name": "user", "description": "Handle User Operation"},
@@ -234,17 +237,21 @@ def register_new_user(new_user: NewUser):
     hashed_password = get_password_hash(new_user.password)
 
     with engine.connect() as conn:
+        print("Gel")
         query = '''INSERT INTO users(email, location, gender, age, mobileNumber, password, name) 
         VALUES ('{0}','{1}', {2}, {3}, '{4}', '{5}', '{6}' )
         '''.format(new_user.email, new_user.location, new_user.gender, new_user.age, new_user.mobileNumber,
                    hashed_password, new_user.name)
         try:
-            conn.execute(query)
+            res = conn.execute(query)
+            print(res)
+
 
             return {
                 'message': "OK"
             }
-        except:
+        except Exception as E:
+            print(E)
             return {
                 'status': "400"
             }
